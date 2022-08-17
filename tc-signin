@@ -1,0 +1,11 @@
+#!/bin/bash
+if [[ -n "$HOST" ]]; then
+  CLIENT_NAME="$HOST"
+else
+  CLIENT_NAME="unknown-$USER"
+fi
+
+eval $(taskcluster signin -n "$CLIENT_NAME" --expires 7d)
+taskcluster config set config.clientId "${TASKCLUSTER_CLIENT_ID}"
+taskcluster config set config.accessToken "${TASKCLUSTER_ACCESS_TOKEN}"
+
