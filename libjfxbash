@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# This is meant to be sourced like:
+# source $path/libjfxbash
+
+# All of my scripts need at least bash 4
+if [[ ${BASH_VERSINFO[0]} -lt 4 ]]; then
+  echo "Bash version $BASH_VERSION is too old. Bash 4 required."
+  exit 6
+fi
+  
+# Internal constants
+# shellcheck disable=SC2034
+{
+__colors_GREEN="\\033[1;32m"
+__colors_RED="\\033[1;31m"
+__colors_YELLOW="\\033[1;33m"
+__colors_BLUE="\\033[1;34m"
+__colors_WHITE="\\033[0;39m"
+__colors_RESET="\\033[0;m"
+}
+
+export TRUE=0
+export FALSE=1
+
+isTrue() {
+  [[ "$1" -eq 0 ]]
+}
+
+isFalse() {
+  # Erf... technically anything other than zero is false
+  [[ "$1" -ne 0 ]]
+}
+
+runit () {
+	nohup "$@" < /dev/null &> /dev/null &
+}
+export -f runit
+
+
+isFunction () {
+  # Returns $TRUE or $FALSE
+  declare -f "${1}" > /dev/null
+}
+export -f isFunction
+
+
+function inArray() {
+    # $1 is your needle
+    # $2 is your haystack
+    # Returns $TRUE or $FALSE
+    # Usage: inArray "needle" "${HAYSTACK[@]}"
+    local hay needle="$1"
+    shift
+    for hay; do
+      [[ "$hay" == "$needle" ]] && return 0
+    done
+    return 1
+}
+
+prefix_output() {
+  # Prefixes output from a command with the given prefix.
+  # Prefix can be a string:
+  # $ <command> | prefix_output "This is my prefix"
+  # or Prefix can be a function:
+  # f() { date }
+  # $ <command> | prefix_output f
+  #
+  # A trailing : and space are added to the prefix.
+  local prefixer prefix
+  prefix="$1"
+  prefix_func="$2"
+  
+  # shellcheck disable=SC1117
+  my_print() { builtin printf "%q: %s\n" "${1}" "${2}"; }
+
+  if isFunction "$prefix_func"; then
+    prefixer="$prefix_func $prefix"
+  else
+    prefixer="my_print $prefix"
+  fi
+
+  while read -r LINE; do
+    ${prefixer} "${LINE}"
+  done
+
+  unset -f my_print
+}
+export -f prefix_output
+
+for color in GREEN RED YELLOW BLUE; do
+  # End result of this is two sets of functions defined.
+  # Define prefix_COLOR functions
+  func_name="prefix_${color}"
+  eval ansi_prefix="\$__colors_${color}"
+  # shellcheck disable=SC2016,SC1117,SC2154
+  cmd="builtin printf '%b%s%b: %s\n' \"${ansi_prefix}\" \"\${1}\" \"${__colors_RESET}\" \"\${2}\""
+
+  eval "${func_name}() { ${cmd}; }"
+  export -f "${func_name?}"
+
+  # Define print_COLOR functions
+  func_name="print_${color}"
+  # ansi_prefix can be reused from above
+  # shellcheck disable=SC2016,SC1117
+  cmd="builtin printf '%b%s%b\n' \"${ansi_prefix}\" \"\${*}\" \"${__colors_RESET}\""
+
+  eval "${func_name}() { ${cmd}; }"
+  export -f "${func_name?}"
+
+  #unset func_name ansi_prefix cmd
+done
+

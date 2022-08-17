@@ -1,0 +1,128 @@
+#!/bin/bash
+# 2018 by Rob Lemley
+# Works with a unified repository to pull mozilla- and matching comm- trees
+# Assumes firefoxtree extension is installed
+# Requires bash 4 (hey I could have used zsh!)
+# Requires libbash http://sf.net/projects/libbash
+#
+# $1 is the comm tree you want.
+# Supported trees: comm-central, comm-beta, comm-esr91, comm-esr102
+
+# Map comm repos to the appropriate mozilla repo
+declare -A REPOMAP=( [comm]=central
+                     [c-c]=central
+                     [comm-beta]=beta
+                     [c-b]=beta
+                     [comm-esr91]=esr91
+                     [comm-esr102]=esr102 )
+
+# Load libbash libraries
+# shellcheck disable=SC2086
+source_libjfxbash="source $(dirname $0)/libjfxbash"
+${source_libjfxbash}
+
+function is_true() {
+  [[ $1 -eq 0 ]] && return 0 || return 1
+}
+
+function check_ext() {
+  # Verify firefoxtree extension
+  FFT=$(hg config extensions.firefoxtree)
+  if is_true $?; then
+    print_GREEN "Firefoxtree extension found at $FFT"
+  else
+    print_RED "Firefoxtree extension not found"
+    echo "See https://mozilla-version-control-tools.readthedocs.io/en/latest/hgmozilla/firefoxtree.html"
+    exit 1
+  fi
+}
+
+function is_comm() {
+  # Verify current directory is a comm checkout and parent is a mozilla
+  # Uses hg fxheads to check
+  # Must have "central" pulled for mozilla and "comm" for comm
+  hg fxheads -T '{label("log.tag", join(fxheads, " "))}\n' | grep -x -q comm
+  if is_true $?; then
+    print_GREEN "Found comm repository at ."
+    hg -R .. fxheads -T '{label("log.tag", join(fxheads, " "))}\n' | grep -x -q central
+    if is_true $?; then
+      print_GREEN "Found mozilla repository at .."
+      return 0
+    else
+      print_RED "No mozilla repository at .. - did you run 'hg pull central'?"
+      exit 1
+    fi
+  else
+    print_RED "No comm repository at .. - did you run 'hg pull comm'?"
+    exit 1
+  fi
+}
+
+function check_status() {
+  # Makes sure status of the repos is clean
+  local R
+  ( R=$(hg id -T '{dirty}\n')
+    if [[ -n "$R" ]]; then
+      print_RED "Comm repository is dirty, hg update will not work"
+      exit 1 # Exits the subshell, not the script
+    fi ) &&
+  ( R=$(hg -R .. id -T '{dirty}\n')
+    if [[ "$R" == "+" ]]; then
+      print_RED "Mozilla repository is dirty, hg update will not work"
+      exit 1 # Exits the subshell, not the script
+    fi ) &&
+  print_GREEN "Repositories are clean, hg update should work" ||
+  exit 1
+  
+  return 0
+}
+
+function hg_pull() {
+  local R="$1"
+  local REPO="$2"
+  local PREFIX="$3"
+
+  { hg -R "${R}" pull "${REPO}"
+    hg -R "${R}" update "${REPO}"
+  } | prefix_output "${REPO}" "${PREFIX}"
+}
+
+function do_pull() {
+  # Do the pulls and update.
+  # Exit status is not checked or anything
+  local COMM="$1"
+  local MOZ="${REPOMAP[$COMM]}"
+
+  ( hg_pull .. "${MOZ}" "prefix_BLUE" ) &
+  ( hg_pull . "${COMM}" "prefix_YELLOW" ) &
+  wait
+}
+
+function valid_comm() {
+  # Is the comm given repository valid?
+  for K in "${!REPOMAP[@]}"; do
+    [[ "$1" == "$K" ]] && return 0
+  done
+  return 1
+}
+
+function invalid_comm_msg() {
+  print_RED "Must provide the name of a comm repo to pull."
+  echo -n "Valid repos:"
+  echo "     ${!REPOMAP[*]}"
+  exit 1
+}
+
+export -f print_BLUE
+
+check_ext
+is_comm
+check_status
+if [[ -z "$1" ]]; then
+  exit 0
+elif ! valid_comm "$1"; then
+  invalid_comm_msg
+else
+  do_pull "$1"
+fi
+  
