@@ -1,0 +1,99 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Use taskcluster commandline client to re-run failed l10n repacks
+# on a nightly build.
+# You must already be signed in and have your taskcluster client
+# configured to use credentials properly.
+
+# Requires libjfxbash
+# shellcheck disable=SC2086
+source_libjfxbash="source $(dirname $0)/libjfxbash"
+${source_libjfxbash}
+
+declare TC
+
+# shellcheck disable=SC2120
+function invalid_group_id() {
+  if [[ -n "${1}" ]]; then
+    print_RED "Invalid group ID given: ${1}"
+  else
+    print_RED "No group ID given"
+  fi
+  exit 1
+}
+
+function check_taskcluster() {
+  TC=$(command -v taskcluster)
+  if [[ -z "${TC}" ]]; then
+    print_RED "Unable to find 'taskcluster' command in your PATH."
+    exit 1
+  fi
+}
+
+function taskcluster_error() {
+  print_RED "Taskcluster failure. See output."
+  exit 1
+}
+
+function run_taskcluster() {
+  local COMMAND
+  COMMAND="${*}"
+
+  print_BLUE "Executing ${TC} ${COMMAND}" > /dev/stderr
+  ( "${TC}" $COMMAND || taskcluster_error )
+}
+
+function rerun_task() {
+  local TASK_ID TASK_LABEL
+  # shellcheck disable=SC2034 
+  read -r TASK_ID TASK_LABEL STATUS < <(echo "$2")
+
+  print_BLUE "Reruning task ${TASK_LABEL}"
+  run_taskcluster task rerun "${TASK_ID}"
+  sleep 2
+  return $?
+}
+
+
+function run_failed_tasks() {
+  local COMMAND
+  local GROUP_ID
+  local GREP
+  declare -a TC_FAILED
+
+  GROUP_ID="${1}"
+  GREP="${2}"
+
+  if [[ -z "${GREP}" ]]; then
+    COMMAND="group list -e -f ${GROUP_ID}"
+  else
+    COMMAND="group list -e -f ${GROUP_ID} | grep ${GREP}"
+  fi
+  # shellcheck disable=SC2034
+  mapfile -t -c 1 -C 'rerun_task' TC_FAILED < <(run_taskcluster ${COMMAND})
+}
+
+function main() {
+  local GROUP_ID
+  local GREP
+  GROUP_ID="${1}"
+  GREP="${2}"
+
+  print_BLUE "Checking for failed tasks in group ${GROUP_ID}"
+  if [[ -n "${GREP}" ]]; then
+    print_BLUE "  ... matching grep ${GREP}."
+  fi
+  run_failed_tasks "${GROUP_ID}" "${GREP}"
+
+}
+
+
+check_taskcluster
+if [[ -z "${1}" ]]; then
+  # shellcheck disable=SC2119
+  invalid_group_id
+fi
+main "${1}" "${2}"
