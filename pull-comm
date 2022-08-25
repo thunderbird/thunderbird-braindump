@@ -41,10 +41,10 @@ function is_comm() {
   # Verify current directory is a comm checkout and parent is a mozilla
   # Uses hg fxheads to check
   # Must have "central" pulled for mozilla and "comm" for comm
-  hg fxheads -T '{label("log.tag", join(fxheads, " "))}\n' | grep -x -q comm
+  hg fxheads -T '{label("log.tag", join(fxheads, "\n"))}\n' | grep -x -q comm
   if is_true $?; then
     print_GREEN "Found comm repository at ."
-    hg -R .. fxheads -T '{label("log.tag", join(fxheads, " "))}\n' | grep -x -q central
+    hg -R .. fxheads -T '{label("log.tag", join(fxheads, "\n"))}\n' | grep -x -q central
     if is_true $?; then
       print_GREEN "Found mozilla repository at .."
       return 0
