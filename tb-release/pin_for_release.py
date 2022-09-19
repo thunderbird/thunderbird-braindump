@@ -31,6 +31,7 @@ Known bugs:
 
 import sys
 import os
+import getpass
 import re
 import urllib.request
 import json
@@ -41,10 +42,21 @@ MOZ_HG_TAG_URL = "https://hg.mozilla.org/releases/{repo}/json-tags"
 # Most recent tag that's a RELEASE or BUILD1
 RELEASE_TAG_RE = r"^FIREFOX_{major_version}_[\dbesr_]+(RELEASE|BUILD\d)$"
 
-LINES = {"GECKO_BASE_REPOSITORY": 1,
-         "GECKO_HEAD_REPOSITORY": 2,
-         "GECKO_HEAD_REF": 3,
-         "GECKO_HEAD_REV": 4,}
+LINES = {
+    "GECKO_BASE_REPOSITORY": 1,
+    "GECKO_HEAD_REPOSITORY": 2,
+    "GECKO_HEAD_REF": 3,
+    "GECKO_HEAD_REV": 4,
+}
+
+
+def get_approver():
+    approvers = {"rob": "rjl", "daniel": "dandarnell"}
+    username = getpass.getuser()
+    try:
+        return approvers[username]
+    except KeyError:
+        raise Exception(f"{username} not in approvers map! Add yourself.")
 
 
 def get_json_tags(repo):
@@ -64,15 +76,14 @@ def get_last_tag(repo):
     j = get_json_tags(repo)
 
     for i in range(0, 10):
-        tag = j["tags"][i] 
+        tag = j["tags"][i]
         m = release_tag_matcher.match(tag["tag"])
         if m:
             print("Found matching tag: {}".format(m.group(0)))
-                
+
             print("Tag: {}".format(tag["tag"]))
             print("Rev: {}".format(tag["node"]))
-            return {"tag": tag["tag"],
-                    "node": tag["node"]}
+            return {"tag": tag["tag"], "node": tag["node"]}
 
     raise Exception("No release tag found in first 10 tags downloaded.")
 
@@ -80,13 +91,14 @@ def get_last_tag(repo):
 def get_default_rev(repo):
     j = get_json_tags(repo)
     node = j["node"]
-    return {"tag": "default",
-            "node": node}
+    return {"tag": "default", "node": node}
 
 
 def update_gecko_yml(repo, tagdata):
     if not os.path.isfile(".gecko_rev.yml"):
-        raise Exception("No .gecko_rev.yml found in current directory. Not in a comm checkout?")
+        raise Exception(
+            "No .gecko_rev.yml found in current directory. Not in a comm checkout?"
+        )
 
     with open(".gecko_rev.yml") as fp:
         data = fp.readlines()
@@ -118,12 +130,16 @@ def update_gecko_yml(repo, tagdata):
         fp.writelines(data)
 
     print("Success!")
-    hg_msg =  "No bug - Pin {repo} ({tag}/{shortnode}). r=release a=rjl".format(repo=repo, tag=tagdata["tag"], shortnode=tagdata["node"][:11])
+    approver = get_approver()
+    hg_msg = "No bug - Pin {repo} ({tag}/{shortnode}). r=release a={approver}".format(
+        repo=repo, tag=tagdata["tag"], shortnode=tagdata["node"][:11], approver=approver
+    )
     hg_cmd = ["hg", "commit", ".gecko_rev.yml", "-m", hg_msg]
     result = subprocess.run(hg_cmd, check=True, capture_output=True)
     print(result.stdout)
     print(result.stderr)
-          
+
+
 def reset_default(repo):
     tagdata = get_default_rev(repo)
     update_gecko_yml(repo, tagdata)
@@ -134,7 +150,7 @@ def main(repo):
     update_gecko_yml(repo, tagdata)
 
 
-if  __name__ == "__main__":
+if __name__ == "__main__":
     if len(sys.argv) == 2:
         main(sys.argv[1])
     elif len(sys.argv) == 3 and sys.argv[2] == "--default":
