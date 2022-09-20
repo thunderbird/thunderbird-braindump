@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Requires bash 4
+# Requires fxbranch & libjfxbash in the path
+
+# In this script, REPO refers to a repository, such as comm-beta
+# and BRANCH/REF refers to a branch in the repository.
+
+source fxbranch
+
+FX_REPO="${1}"
+COMM_DIR="."
+
+if [[ ! -d "$COMM_DIR" ]]; then
+  print_RED "Not a directory: $COMM_DIR"
+  exit 1
+fi
+
+MOZILLA_DIR=$(realpath "${COMM_DIR}/..")
+
+R=$(hg -R "$MOZILLA_DIR" id -T '{dirty}\n' -r tip)
+if [[ "$R" == "+" ]]; then
+  print_YELLOW "Mozilla checkout is dirty. Using revision id of tip."
+fi
+
+REV=$(hg -R "$MOZILLA_DIR" id -T '{node}\n' -r tip)
+REF=$(hg -R "$MOZILLA_DIR" branch)
+
+if [[ -n "${FX_REPO}" ]]; then
+  if fx_is_mozilla "$FX_REPO"; then
+    MOZILLA_URI=$(fx2uri "$FX_REPO")
+  else
+    print_RED "Unknown mozilla repo: ${FX_REPO}"
+    exit 1
+  fi
+fi
+
+GECKO_FILE="${COMM_DIR}/.gecko_rev.yml"
+
+
+###
+declare -a _used_fields
+
+map_cb() {
+  local _data _key
+
+  _data="${2##[#-]*}"
+  if [[ ! -z "$_data" ]]; then 
+    _key="${_data%%:*}"
+    _used_fields+=("$_key")
+  fi
+}
+
+
+
+mapfile -t -c 1 -C 'map_cb' GECKO_REV < "$GECKO_FILE"
+if [[ -n "${GECKO_REV[0]}" ]]; then
+  echo -n ''
+fi
+
+sed -i -e "s/^\(GECKO_HEAD_REF\): \(.*\)$/\1: $REF/" \
+       -e "s/^\(GECKO_HEAD_REV\): \(.*\)$/\1: $REV/" \
+  "$GECKO_FILE"
+
+if ! inArray "GECKO_HEAD_REF" "${_used_fields[@]}"; then
+  sed -i -e "5i GECKO_HEAD_REF: $REF" "$GECKO_FILE"
+fi
+if ! inArray "GECKO_HEAD_REV" "${_used_fields[@]}"; then
+  sed -i -e "5i GECKO_HEAD_REV: $REV" "$GECKO_FILE"
+fi
+if [[ -n "${MOZILLA_URI}" ]]; then
+  sed -i -e "s%^GECKO_HEAD_REPOSITORY: .*%GECKO_HEAD_REPOSITORY: ${MOZILLA_URI}%" "${GECKO_FILE}"
+fi
+
+cat "$GECKO_FILE" | prefix_output '.gecko_rev.yml' prefix_BLUE
+

@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# Requires bash 4
+source libjfxbash
+
+function fx2uri() {
+  local -A  REPOURIS=(  ["mozilla-central"]="https://hg.mozilla.org/mozilla-central"
+                        ["mozilla-beta"]="https://hg.mozilla.org/releases/mozilla-beta"
+                        ["mozilla-release"]="https://hg.mozilla.org/releases/mozilla-release"
+                        ["mozilla-esr102"]="https://hg.mozilla.org/releases/mozilla-esr102"
+                        ["comm-central"]="https://hg.mozilla.org/comm-central"
+                        ["comm-beta"]="https://hg.mozilla.org/releases/comm-beta"
+                        ["comm-esr102"]="https://hg.mozilla.org/releases/comm-esr102"
+                        ["try"]="https://hg.mozilla.org/try"
+                        ["try-comm-central"]="https://hg.mozilla.org/try-comm-central"
+			["autoland"]="https://hg.mozilla.org/integration/autoland"
+                        )
+  echo "${REPOURIS[$1]}"
+}
+
+function fx2real() {
+  local -A REPONAMES=( ["comm"]="comm-central"
+                       ["comm-beta"]="comm-beta"
+                       ["comm-esr102"]="comm-esr102"
+                       ["try-comm"]="try-comm-central"
+                       ["central"]="mozilla-central"
+                       ["beta"]="mozilla-beta"
+                       ["release"]="mozilla-release"
+                       ["esr78"]="mozilla-esr78"
+                       ["try"]="try"
+		       ["autoland"]="autoland"
+                      )
+  echo "${REPONAMES[$1]}"
+}
+
+function fx_is_comm() {
+  local COMM_REPOS=( "comm-central" "comm-beta" "comm-esr102" "try-comm-central" )
+  inArray "$1" "${COMM_REPOS[@]}"
+  return $?
+}
+
+function fx_is_mozilla() {
+  local MOZILLA_REPOS=( "mozilla-central" "mozilla-beta" "mozilla-release"
+                     "mozilla-esr102" "try" "autoland")
+  inArray "$1" "${MOZILLA_REPOS[@]}"
+  return $?
+}
+
+function fxbranch() {
+	local -A FXREVS
+  local _repopath="$1"
+  local _branch
+  local _rev
+  local _junk
+
+  if [[ -z "$_repopath" ]]; then
+    _repopath="."
+  fi
+
+	while read _branch _rev _junk; do
+	  FXREVS[$_branch]="$_rev"
+	done < <(hg fxheads -R "$_repopath" -T '{label("log.tag", join(fxheads, " "))} {label("log.changeset", rev)}\n')
+	
+	
+	for _branch in ${!FXREVS[@]}; do
+	  _rev="${FXREVS[$_branch]}"
+    # We might be pinned to a THUNDERBIRD_RELEASE_VERBRANCH, but then firefoxtrees
+    # won't recognize us, so just use default
+    if [[ $(hg debugancestor -R "$_repopath" "$_rev" default | cut -d : -f 1) == "$_rev" ]]; then
+	    fx2real "$_branch"
+      return 0
+	    break
+	  fi
+	done
+  return 1
+}
+
+###
+_main=fxbranch
+[[ "${BASH_SOURCE[0]}" = "${0}" ]] && $_main $@
