@@ -26,16 +26,16 @@ Tags for a major version look something like:
 Known bugs:
 - Verbranches can get in the way if a chemspill necessitated a release from a
   verbranch after the next BUILD1 was tagged. So 91_10_0 gets tagged, then
-  chemspill 91_9_1 gets tagged. 
+  chemspill 91_9_1 gets tagged.
 """
 
-import sys
-import os
 import getpass
-import re
-import urllib.request
 import json
+import os
+import re
 import subprocess
+import sys
+import urllib.request
 
 MOZ_HG_URL = "https://hg.mozilla.org/releases/{repo}"
 MOZ_HG_TAG_URL = "https://hg.mozilla.org/releases/{repo}/json-tags"
@@ -51,7 +51,7 @@ LINES = {
 
 
 def get_approver():
-    approvers = {"rob": "rjl", "daniel": "dandarnell"}
+    approvers = {"rob": "rjl", "danield": "dandarnell"}
     username = getpass.getuser()
     try:
         return approvers[username]
