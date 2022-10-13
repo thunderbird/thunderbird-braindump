@@ -151,6 +151,10 @@ def main(repo):
 
 
 if __name__ == "__main__":
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print(f"Usage: {__file__} mozilla-repo [--default]")
+        print("    Where mozilla-repo is a valid repo, mozilla-beta or mozilla-esr*")
+        sys.exit(1)
     if len(sys.argv) == 2:
         main(sys.argv[1])
     elif len(sys.argv) == 3 and sys.argv[2] == "--default":
