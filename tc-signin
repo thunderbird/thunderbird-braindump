@@ -1,4 +1,5 @@
 #!/bin/bash
+HOST=$(uname -n)
 if [[ -n "$HOST" ]]; then
   CLIENT_NAME="$HOST"
 else
