@@ -8,9 +8,11 @@ function fx2uri() {
                         ["mozilla-beta"]="https://hg.mozilla.org/releases/mozilla-beta"
                         ["mozilla-release"]="https://hg.mozilla.org/releases/mozilla-release"
                         ["mozilla-esr102"]="https://hg.mozilla.org/releases/mozilla-esr102"
+                        ["mozilla-esr115"]="https://hg.mozilla.org/releases/mozilla-esr115"
                         ["comm-central"]="https://hg.mozilla.org/comm-central"
                         ["comm-beta"]="https://hg.mozilla.org/releases/comm-beta"
                         ["comm-esr102"]="https://hg.mozilla.org/releases/comm-esr102"
+                        ["comm-esr115"]="https://hg.mozilla.org/releases/comm-esr115"
                         ["try"]="https://hg.mozilla.org/try"
                         ["try-comm-central"]="https://hg.mozilla.org/try-comm-central"
 			["autoland"]="https://hg.mozilla.org/integration/autoland"
@@ -22,11 +24,11 @@ function fx2real() {
   local -A REPONAMES=( ["comm"]="comm-central"
                        ["comm-beta"]="comm-beta"
                        ["comm-esr102"]="comm-esr102"
+                       ["comm-esr115"]="comm-esr115"
                        ["try-comm"]="try-comm-central"
                        ["central"]="mozilla-central"
                        ["beta"]="mozilla-beta"
                        ["release"]="mozilla-release"
-                       ["esr78"]="mozilla-esr78"
                        ["try"]="try"
 		       ["autoland"]="autoland"
                       )
@@ -34,14 +36,14 @@ function fx2real() {
 }
 
 function fx_is_comm() {
-  local COMM_REPOS=( "comm-central" "comm-beta" "comm-esr102" "try-comm-central" )
+  local COMM_REPOS=( "comm-central" "comm-beta" "comm-esr102" "comm-esr115" "try-comm-central" "ash" )
   inArray "$1" "${COMM_REPOS[@]}"
   return $?
 }
 
 function fx_is_mozilla() {
   local MOZILLA_REPOS=( "mozilla-central" "mozilla-beta" "mozilla-release"
-                     "mozilla-esr102" "try" "autoland")
+                     "mozilla-esr102" "mozilla-esr115" "try" "autoland")
   inArray "$1" "${MOZILLA_REPOS[@]}"
   return $?
 }

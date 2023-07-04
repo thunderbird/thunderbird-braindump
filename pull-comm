@@ -6,15 +6,27 @@
 # Requires libbash http://sf.net/projects/libbash
 #
 # $1 is the comm tree you want.
-# Supported trees: comm-central, comm-beta, comm-esr91, comm-esr102
+# Supported trees: comm-central, comm-beta, comm-esr102, comm-esr115
+#
+# Limitations & other notes:
+# - The shell's current directory must be $topsrcdir/comm where $topsrcdir is a gecko source tree. You must have run
+#   `hg pull comm` and `hg pull central` in the respective directories at least once prior to running pull-comm for
+#   the first time in a newly cloned source tree.
+# - The pull will fail if either gecko or comm clones have uncommited changes. Either commit them or shelve them.
+# - This script always assumes that if passed a given comm repo, that the corresponding gecko repo will be pulled with it
+#   as set in ${REPOMAP}.
+# - If GECKO_HEAD_REV is set in .gecko_rev.yml, the comm checkout will update to that revision. No attempt is made to sanity
+#   check that GECKO_HEAD_REPOSITORY is what REPOMAP has said to pull. So this could fail!
+
+set -E
 
 # Map comm repos to the appropriate mozilla repo
 declare -A REPOMAP=( [comm]=central
                      [c-c]=central
                      [comm-beta]=beta
                      [c-b]=beta
-                     [comm-esr91]=esr91
-                     [comm-esr102]=esr102 )
+                     [comm-esr102]=esr102
+                     [comm-esr115]=esr115 )
 
 # Load libbash libraries
 # shellcheck disable=SC2086
@@ -113,6 +125,15 @@ function invalid_comm_msg() {
   exit 1
 }
 
+function do_upstream_rev() {
+  # Reads upstream (gecko src) information from .gecko_rev.yml
+  # Check for a GECKO_HEAD_REPOSITORY line
+  grep -E '^GECKO_HEAD_REV: ' .gecko_rev.yml || { print_YELLOW "GECKO_HEAD_REV not found in .gecko_rev.yml. Updated to tip."; exit 0; }
+  REV=$(grep -E '^GECKO_HEAD_REV: ' .gecko_rev.yml | sed -e 's/^GECKO_HEAD_REV: //')
+  print_BLUE "Updating to ${REV}."
+  hg up -R .. ${REV}
+}
+
 export -f print_BLUE
 
 check_ext
@@ -124,5 +145,5 @@ elif ! valid_comm "$1"; then
   invalid_comm_msg
 else
   do_pull "$1"
+  do_upstream_rev
 fi
-  
