@@ -39,6 +39,8 @@ import urllib.request
 
 MOZ_HG_URL = "https://hg.mozilla.org/releases/{repo}"
 MOZ_HG_TAG_URL = "https://hg.mozilla.org/releases/{repo}/json-tags"
+# Matcher for RELEASE_BASE tags (used for late betas)
+BASE_TAG_RE = r"^FIREFOX_RELEASE_{major_version}_BASE$"
 # Most recent tag that's a RELEASE or BUILD1
 RELEASE_TAG_RE = r"^FIREFOX_{major_version}_[\dbesr_]+(RELEASE|BUILD\d)$"
 
@@ -71,13 +73,21 @@ def get_json_tags(repo):
 def get_last_tag(repo):
     tb_version = open("mail/config/version.txt").read()
     tb_major = tb_version.split(".")[0]
+    base_tag_regex = BASE_TAG_RE.format(major_version=tb_major)
     release_tag_regex = RELEASE_TAG_RE.format(major_version=tb_major)
+    base_tag_matcher = re.compile(base_tag_regex)
     release_tag_matcher = re.compile(release_tag_regex)
+
+    def check_match(tag):
+        base_m = base_tag_matcher.match(tag)
+        rel_m = release_tag_matcher.match(tag)
+        return base_m or rel_m
+
     j = get_json_tags(repo)
 
     for i in range(0, 10):
         tag = j["tags"][i]
-        m = release_tag_matcher.match(tag["tag"])
+        m = check_match(tag["tag"])
         if m:
             print("Found matching tag: {}".format(m.group(0)))
 
