@@ -20,27 +20,39 @@
 
 set -E
 
+START_DIR=$(pwd)
+
 # Map comm repos to the appropriate mozilla repo
 declare -A REPOMAP=( [comm]=central
                      [c-c]=central
                      [comm-beta]=beta
                      [c-b]=beta
+                     [comm-release]=release
+		                 [c-r]=release
                      [comm-esr102]=esr102
-                     [comm-esr115]=esr115 )
+                     [comm-esr115]=esr115 
+		                 [comm-esr128]=esr128 )
+
 
 # Load libbash libraries
 # shellcheck disable=SC2086
 source_libjfxbash="source $(dirname $0)/libjfxbash"
 ${source_libjfxbash}
 
-function is_true() {
-  [[ $1 -eq 0 ]] && return 0 || return 1
-}
+# Prefer chg over hg
+export HG=$(which chg)
+if [[ -z "$HG" ]]; then
+  export HG=$(which hg)
+fi
+if [[ -z "$HG" ]]; then
+  print_RED "Mercurial executable not found. Tried 'chg' and 'hg'"
+  exit 1
+fi
 
 function check_ext() {
   # Verify firefoxtree extension
-  FFT=$(hg config extensions.firefoxtree)
-  if is_true $?; then
+  FFT=$("${HG}" config extensions.firefoxtree)
+  if [[ $? -eq 0 ]]; then
     print_GREEN "Firefoxtree extension found at $FFT"
   else
     print_RED "Firefoxtree extension not found"
@@ -49,36 +61,15 @@ function check_ext() {
   fi
 }
 
-function is_comm() {
-  # Verify current directory is a comm checkout and parent is a mozilla
-  # Uses hg fxheads to check
-  # Must have "central" pulled for mozilla and "comm" for comm
-  hg fxheads -T '{label("log.tag", join(fxheads, "\n"))}\n' | grep -x -q comm
-  if is_true $?; then
-    print_GREEN "Found comm repository at ."
-    hg -R .. fxheads -T '{label("log.tag", join(fxheads, "\n"))}\n' | grep -x -q central
-    if is_true $?; then
-      print_GREEN "Found mozilla repository at .."
-      return 0
-    else
-      print_RED "No mozilla repository at .. - did you run 'hg pull central'?"
-      exit 1
-    fi
-  else
-    print_RED "No comm repository at .. - did you run 'hg pull comm'?"
-    exit 1
-  fi
-}
-
 function check_status() {
   # Makes sure status of the repos is clean
   local R
-  ( R=$(hg id -T '{dirty}\n')
+  ( R=$("${HG}" id -T '{dirty}\n')
     if [[ -n "$R" ]]; then
       print_RED "Comm repository is dirty, hg update will not work"
       exit 1 # Exits the subshell, not the script
     fi ) &&
-  ( R=$(hg -R .. id -T '{dirty}\n')
+  ( R=$("${HG}" -R .. id -T '{dirty}\n')
     if [[ "$R" == "+" ]]; then
       print_RED "Mozilla repository is dirty, hg update will not work"
       exit 1 # Exits the subshell, not the script
@@ -94,35 +85,27 @@ function hg_pull() {
   local REPO="$2"
   local PREFIX="$3"
 
-  { hg -R "${R}" pull "${REPO}"
-    hg -R "${R}" update "${REPO}"
+  { "${HG}" -R "${R}" pull "${REPO}"
+    "${HG}" -R "${R}" update "${REPO}"
   } | prefix_output "${REPO}" "${PREFIX}"
 }
 
 function do_pull() {
   # Do the pulls and update.
   # Exit status is not checked or anything
-  local COMM="$1"
-  local MOZ="${REPOMAP[$COMM]}"
+  local COMM
+  local MOZ
+  get_upstream_repo MOZ
+  if [[ "$MOZ" = "central" ]]; then
+    COMM="comm"
+  else
+    COMM="comm-${MOZ}"
+  fi
+  print_BLUE "Using \"${COMM}\" for Comm repository."
 
   ( hg_pull .. "${MOZ}" "prefix_BLUE" ) &
   ( hg_pull . "${COMM}" "prefix_YELLOW" ) &
   wait
-}
-
-function valid_comm() {
-  # Is the comm given repository valid?
-  for K in "${!REPOMAP[@]}"; do
-    [[ "$1" == "$K" ]] && return 0
-  done
-  return 1
-}
-
-function invalid_comm_msg() {
-  print_RED "Must provide the name of a comm repo to pull."
-  echo -n "Valid repos:"
-  echo "     ${!REPOMAP[*]}"
-  exit 1
 }
 
 function do_upstream_rev() {
@@ -131,19 +114,53 @@ function do_upstream_rev() {
   grep -E '^GECKO_HEAD_REV: ' .gecko_rev.yml || { print_YELLOW "GECKO_HEAD_REV not found in .gecko_rev.yml. Updated to tip."; exit 0; }
   REV=$(grep -E '^GECKO_HEAD_REV: ' .gecko_rev.yml | sed -e 's/^GECKO_HEAD_REV: //')
   print_BLUE "Updating to ${REV}."
-  hg up -R .. ${REV}
+  "${HG}" up -R .. ${REV}
 }
+
+function get_upstream_repo() {
+  declare -n ret=$1
+  # Reads upstream (gecko) repo from .gecko_rev.yml
+  local get_upstream_repo_ret=$(grep -E '^GECKO_HEAD_REPOSITORY: ' .gecko_rev.yml | sed -E 's%^GECKO_HEAD_REPOSITORY: https://hg.mozilla.org/(releases/)?mozilla-%%')
+  print_BLUE "Using \"${get_upstream_repo_ret}\" for Gecko repository."
+  ret=${get_upstream_repo_ret}
+}
+
+find_comm() {
+  declare -n ret=$1
+  local find_comm_ret
+  find_comm_ret=$( while [[ "$(pwd)" != "/" ]]; do 
+    if [[ -d .hg ]]; then
+      if [[ -f ../mach ]]; then
+        pwd
+        exit 0
+      else
+        echo "Found an .hg directory in $(pwd) but it's not a Thunderbird repo?"
+        exit 8
+      fi
+    fi
+    cd ..
+  done
+  echo "Current directory $(pwd) does not appear to be a Thunderbird HG repository."
+  exit 6 )
+  if [[ $? -eq 0 ]]; then
+    ret="${find_comm_ret}"
+  else
+    echo "${find_comm_ret}"
+    return $?
+  fi    
+}
+  
+trap 'cd "$START_DIR"' EXIT
 
 export -f print_BLUE
 
 check_ext
-is_comm
-check_status
-if [[ -z "$1" ]]; then
-  exit 0
-elif ! valid_comm "$1"; then
-  invalid_comm_msg
-else
-  do_pull "$1"
-  do_upstream_rev
+find_comm _COMM_TOP_SRCDIR
+if [[ $? -ne 0 ]]; then
+  exit $?
 fi
+cd "${_COMM_TOP_SRCDIR}"
+check_status
+do_pull "$1"
+do_upstream_rev
+exit 0
