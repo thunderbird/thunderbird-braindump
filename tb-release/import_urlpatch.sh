@@ -6,8 +6,13 @@ APPROVER="$1"
 PATCHURL="$2"
 
 PATCHFILE=/tmp/patchgg
-wget -O ${PATCHFILE} ${PATCHURL}
-
+if [[ -f "${PATCHURL}" ]]; then
+  echo "Using file $PATCHURL"
+  PATCHFILE="${PATCHURL}"
+else
+  echo "Downloading $PATCHURL"
+  wget -O ${PATCHFILE} ${PATCHURL}
+fi
 
 check_reviewer() {
   grep -E '^[Bb]ug ' $PATCHFILE | grep -q "r=$APPROVER"
