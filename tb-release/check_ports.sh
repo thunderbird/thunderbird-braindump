@@ -41,7 +41,7 @@ function die() {
 
 inArray "--help" "$@" || inArray "-h" "$@" && usage
 
-inArray "$UPSTREAM_REPO" beta esr102 esr115 || die "UPSTREAM_REPO ($UPSTREAM_REPO) is invalid"
+inArray "$UPSTREAM_REPO" beta esr115 esr128 || die "UPSTREAM_REPO ($UPSTREAM_REPO) is invalid"
 
 [[ -f .hg/hgrc ]] || die "Current directory does not look like a Mercurial repo!"
 [[ -f comm/.hg/hgrc ]] || die "comm/ subdirectory not found!"
