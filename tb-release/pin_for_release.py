@@ -150,14 +150,30 @@ def update_gecko_yml(repo, tagdata):
     print(result.stderr)
 
 
+def update_gecko_src(repo, tagname):
+    if os.path.exists("../mach"):
+        hg_cmd = ["hg", "--cwd", "..", "pull", repo]
+        result = subprocess.run(hg_cmd, check=True, capture_output=True)
+        print(result.stdout)
+        print(result.stderr)
+        hg_cmd = ["hg", "--cwd", "..", "up", "-r", tagname]
+        result = subprocess.run(hg_cmd, check=True, capture_output=True)
+        print(result.stdout)
+        print(result.stderr)
+    else:
+        print("Gecko src not found at '..', not updating.")
+
+
 def reset_default(repo):
     tagdata = get_default_rev(repo)
     update_gecko_yml(repo, tagdata)
+    
 
 
 def main(repo):
     tagdata = get_last_tag(repo)
     update_gecko_yml(repo, tagdata)
+    update_gecko_src(repo, tagdata["tag"])
 
 
 if __name__ == "__main__":
