@@ -8,7 +8,7 @@ echoerr() { printf "%s\n" "$*" >&2; }
 PROG=`basename "$0"`
 usage() {
     echoerr "Error: $@"
-    echoerr "Usage: $PROG REVSPEC APPROVER"
+    echoerr "Usage: $PROG APPROVER REVSPEC"
     exit -1
 }
 

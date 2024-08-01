@@ -151,6 +151,8 @@ def update_gecko_yml(repo, tagdata):
 
 
 def update_gecko_src(repo, tagname):
+    if repo.startswith("mozilla-"):
+        repo = repo[8:]
     if os.path.exists("../mach"):
         hg_cmd = ["hg", "--cwd", "..", "pull", repo]
         result = subprocess.run(hg_cmd, check=True, capture_output=True)
