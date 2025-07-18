@@ -4,18 +4,18 @@
 source libjfxbash
 
 function fx2uri() {
-  local -A  REPOURIS=(  ["mozilla-central"]="https://hg.mozilla.org/mozilla-central"
-                        ["mozilla-beta"]="https://hg.mozilla.org/releases/mozilla-beta"
-                        ["mozilla-release"]="https://hg.mozilla.org/releases/mozilla-release"
-                        ["mozilla-esr102"]="https://hg.mozilla.org/releases/mozilla-esr102"
-                        ["mozilla-esr115"]="https://hg.mozilla.org/releases/mozilla-esr115"
-                        ["comm-central"]="https://hg.mozilla.org/comm-central"
-                        ["comm-beta"]="https://hg.mozilla.org/releases/comm-beta"
-                        ["comm-esr102"]="https://hg.mozilla.org/releases/comm-esr102"
-                        ["comm-esr115"]="https://hg.mozilla.org/releases/comm-esr115"
-                        ["try"]="https://hg.mozilla.org/try"
-                        ["try-comm-central"]="https://hg.mozilla.org/try-comm-central"
-			["autoland"]="https://hg.mozilla.org/integration/autoland"
+  local -A  REPOURIS=(  ["mozilla-central"]="https://hg-edge.mozilla.org/mozilla-central"
+                        ["mozilla-beta"]="https://hg-edge.mozilla.org/releases/mozilla-beta"
+                        ["mozilla-release"]="https://hg-edge.mozilla.org/releases/mozilla-release"
+                        ["mozilla-esr102"]="https://hg-edge.mozilla.org/releases/mozilla-esr102"
+                        ["mozilla-esr115"]="https://hg-edge.mozilla.org/releases/mozilla-esr115"
+                        ["comm-central"]="https://hg-edge.mozilla.org/comm-central"
+                        ["comm-beta"]="https://hg-edge.mozilla.org/releases/comm-beta"
+                        ["comm-esr102"]="https://hg-edge.mozilla.org/releases/comm-esr102"
+                        ["comm-esr115"]="https://hg-edge.mozilla.org/releases/comm-esr115"
+                        ["try"]="https://hg-edge.mozilla.org/try"
+                        ["try-comm-central"]="https://hg-edge.mozilla.org/try-comm-central"
+			["autoland"]="https://hg-edge.mozilla.org/integration/autoland"
                         )
   echo "${REPOURIS[$1]}"
 }

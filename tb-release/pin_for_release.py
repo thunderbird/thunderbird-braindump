@@ -11,7 +11,7 @@ Usage:
 
     $ pin_for_release.py mozilla-beta
 
-The tags are downloaded from hg.mozilla.org in JSON format. They are
+The tags are downloaded from hg-edge.mozilla.org in JSON format. They are
 in reverse order, so the most recent tags are first. The tags are checked
 against a regular expression and the first that matches is used.
 
@@ -37,8 +37,8 @@ import subprocess
 import sys
 import urllib.request
 
-MOZ_HG_URL = "https://hg.mozilla.org/releases/{repo}"
-MOZ_HG_TAG_URL = "https://hg.mozilla.org/releases/{repo}/json-tags"
+MOZ_HG_URL = "https://hg-edge.mozilla.org/releases/{repo}"
+MOZ_HG_TAG_URL = "https://hg-edge.mozilla.org/releases/{repo}/json-tags"
 # Matcher for RELEASE_BASE tags (used for late betas)
 BASE_TAG_RE = r"^FIREFOX_RELEASE_{major_version}_BASE$"
 # Most recent tag that's a RELEASE or BUILD1

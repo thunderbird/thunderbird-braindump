@@ -59,13 +59,13 @@ gecko_rev = get_hg_changeset(topsrcdir)
 comm_rev = get_hg_changeset(os.path.join(topsrcdir, 'comm'))
 
 substs = dict([
-    ('GECKO_BASE_REPOSITORY', "https://hg.mozilla.org/mozilla-unified"),
-    ('GECKO_HEAD_REPOSITORY', "https://hg.mozilla.org/mozilla-central"),
+    ('GECKO_BASE_REPOSITORY', "https://hg-edge.mozilla.org/mozilla-unified"),
+    ('GECKO_HEAD_REPOSITORY', "https://hg-edge.mozilla.org/mozilla-central"),
     ('MOZ_SOURCE_CHANGESET', gecko_rev),
     ('GECKO_HEAD_REF', gecko_rev),
     ('GECKO_HEAD_REV', gecko_rev),
-    ('COMM_BASE_REPOSITORY', "https://hg.mozilla.org/comm-central"),
-    ('COMM_HEAD_REPOSITORY', "https://hg.mozilla.org/comm-central"),
+    ('COMM_BASE_REPOSITORY', "https://hg-edge.mozilla.org/comm-central"),
+    ('COMM_HEAD_REPOSITORY', "https://hg-edge.mozilla.org/comm-central"),
     ('COMM_HEAD_REF', comm_rev),
     ('COMM_HEAD_REV', comm_rev),
 

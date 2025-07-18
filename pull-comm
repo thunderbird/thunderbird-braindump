@@ -120,7 +120,7 @@ function do_upstream_rev() {
 function get_upstream_repo() {
   declare -n ret=$1
   # Reads upstream (gecko) repo from .gecko_rev.yml
-  local get_upstream_repo_ret=$(grep -E '^GECKO_HEAD_REPOSITORY: ' .gecko_rev.yml | sed -E 's%^GECKO_HEAD_REPOSITORY: https://hg.mozilla.org/(releases/)?mozilla-%%')
+  local get_upstream_repo_ret=$(grep -E '^GECKO_HEAD_REPOSITORY: ' .gecko_rev.yml | sed -E 's%^GECKO_HEAD_REPOSITORY: https://hg-edge.mozilla.org/(releases/)?mozilla-%%')
   print_BLUE "Using \"${get_upstream_repo_ret}\" for Gecko repository."
   ret=${get_upstream_repo_ret}
 }
