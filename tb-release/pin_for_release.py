@@ -53,7 +53,7 @@ LINES = {
 
 
 def get_approver():
-    approvers = {"corey": "coreycb", "danield": "dandarnell"}
+    approvers = {"corey": "coreycb", "danield": "dandarnell", "sking":"sking", "ebaginski":"ebaginski"}
     username = getpass.getuser()
     try:
         return approvers[username]
